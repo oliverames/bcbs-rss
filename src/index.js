@@ -6,9 +6,12 @@ import * as cheerio from "cheerio";
 const SITE_ORIGIN = "https://www.bluecrossvt.org";
 const BLOG_LISTING_PATH = "/health-community/blog/listing";
 const BLOG_LISTING_URL = new URL(BLOG_LISTING_PATH, SITE_ORIGIN).toString();
+const FEED_TOKEN = process.env.FEED_TOKEN?.trim() || "";
 const OUTPUT_PATH = process.env.RSS_OUTPUT_PATH
   ? path.resolve(process.cwd(), process.env.RSS_OUTPUT_PATH)
-  : path.resolve(process.cwd(), "site", "feed.rss");
+  : FEED_TOKEN
+    ? path.resolve(process.cwd(), "site", FEED_TOKEN, "feed.rss")
+    : path.resolve(process.cwd(), "site", "feed.rss");
 const REQUEST_TIMEOUT_MS = Number.parseInt(
   process.env.RSS_TIMEOUT_MS ?? "15000",
   10,
