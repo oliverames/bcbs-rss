@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>BCBS Vermont Blog RSS</title>
+    <meta
+      name="description"
+      content="GitHub Pages host for the Blue Cross Blue Shield of Vermont Be Well VT blog RSS feed."
+    >
+    <link
+      rel="alternate"
+      type="application/rss+xml"
+      title="Be Well VT Blog RSS"
+      href="./feed.rss"
+    >
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f3efe7;
+        --paper: rgba(255, 255, 255, 0.86);
+        --ink: #153654;
+        --muted: #496477;
+        --accent: #0072ce;
+        --accent-dark: #00539b;
+        --border: rgba(21, 54, 84, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: Georgia, "Times New Roman", serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top left, rgba(0, 114, 206, 0.22), transparent 28rem),
+          radial-gradient(circle at bottom right, rgba(0, 83, 155, 0.2), transparent 24rem),
+          linear-gradient(135deg, #f8f4ed 0%, #e9f0f8 100%);
+        display: grid;
+        place-items: center;
+        padding: 2rem;
+      }
+
+      main {
+        width: min(42rem, 100%);
+        background: var(--paper);
+        border: 1px solid var(--border);
+        border-radius: 1.5rem;
+        padding: 2rem;
+        backdrop-filter: blur(18px);
+        box-shadow: 0 1.5rem 3rem rgba(21, 54, 84, 0.12);
+      }
+
+      p {
+        line-height: 1.6;
+        color: var(--muted);
+      }
+
+      a {
+        color: var(--accent-dark);
+      }
+
+      .button {
+        display: inline-block;
+        margin-top: 0.75rem;
+        padding: 0.8rem 1.1rem;
+        border-radius: 999px;
+        background: var(--accent);
+        color: white;
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .button:hover,
+      .button:focus-visible {
+        background: var(--accent-dark);
+      }
+
+      code {
+        font-family: "SFMono-Regular", Consolas, monospace;
+        background: rgba(21, 54, 84, 0.08);
+        padding: 0.15rem 0.35rem;
+        border-radius: 0.35rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>BCBS Vermont Blog RSS</h1>
+      <p>
+        This static site publishes a full-text RSS feed for the Blue Cross Blue
+        Shield of Vermont Be Well VT blog.
+      </p>
+      <p>
+        Feed URL: <code>/feed.rss</code>
+      </p>
+      <a class="button" href="./feed.rss">Open the RSS Feed</a>
+    </main>
+  </body>
+</html>

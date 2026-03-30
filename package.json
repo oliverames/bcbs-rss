@@ -1,0 +1,17 @@
+{
+  "name": "bcbs-rss",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Generate an RSS feed for the Blue Cross Blue Shield of Vermont Be Well VT blog.",
+  "scripts": {
+    "generate": "node src/index.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "cheerio": "^1.1.2"
+  }
+}
