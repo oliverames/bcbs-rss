@@ -21,6 +21,7 @@ const CONCURRENCY = Math.max(
   Number.parseInt(process.env.RSS_CONCURRENCY ?? "5", 10),
 );
 const FEED_URL = process.env.FEED_URL?.trim() || "";
+const SITE_URL = process.env.SITE_URL?.trim() || "";
 const USER_AGENT = "bcbs-rss-feed-generator/1.0";
 
 function sleep(milliseconds) {
@@ -341,7 +342,11 @@ function buildRss(items) {
     <title>Be Well VT Blog | Blue Cross Blue Shield of Vermont</title>
     <link>${escapeXml(BLOG_LISTING_URL)}</link>
     <description>${escapeXml(channelDescription)}</description>${atomLink}
-    <language>en-US</language>
+    <language>en-US</language>${
+    SITE_URL
+      ? `\n    <image>\n      <url>${escapeXml(SITE_URL)}/favicon.png</url>\n      <title>Be Well VT Blog | Blue Cross Blue Shield of Vermont</title>\n      <link>${escapeXml(BLOG_LISTING_URL)}</link>\n    </image>`
+      : ""
+  }
     <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
 ${itemXml}
   </channel>
