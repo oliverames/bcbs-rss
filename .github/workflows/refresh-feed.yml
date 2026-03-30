@@ -46,6 +46,7 @@ jobs:
         env:
           FEED_TOKEN: ${{ secrets.FEED_TOKEN }}
           FEED_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/${{ secrets.FEED_TOKEN }}/feed.rss
+          SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
         run: npm run generate
 
       - name: Upload Pages artifact
