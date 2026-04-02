@@ -22,6 +22,7 @@ const CONCURRENCY = Math.max(
 );
 const FEED_URL = process.env.FEED_URL?.trim() || "";
 const SITE_URL = process.env.SITE_URL?.trim() || "";
+const FEED_IMAGE_FILENAME = "feed-logo.jpg";
 const USER_AGENT = "bcbs-rss-feed-generator/1.0";
 
 function sleep(milliseconds) {
@@ -55,6 +56,17 @@ function resolveUrl(url, baseUrl = SITE_ORIGIN) {
   } catch {
     return url;
   }
+}
+
+function buildPublicAssetUrl(baseUrl, assetPath) {
+  if (!baseUrl || !assetPath) {
+    return "";
+  }
+
+  return new URL(
+    assetPath.replace(/^\/+/, ""),
+    `${baseUrl.replace(/\/+$/, "")}/`,
+  ).toString();
 }
 
 function absolutizeSrcset(value, baseUrl) {
@@ -316,6 +328,10 @@ function buildRss(items) {
         FEED_URL,
       )}" rel="self" type="application/rss+xml" />`
     : "";
+  const feedImageUrl = buildPublicAssetUrl(SITE_URL, FEED_IMAGE_FILENAME);
+  const channelImage = feedImageUrl
+    ? `\n    <image>\n      <url>${escapeXml(feedImageUrl)}</url>\n      <title>Be Well VT Blog | Blue Cross Blue Shield of Vermont</title>\n      <link>${escapeXml(BLOG_LISTING_URL)}</link>\n      <width>144</width>\n      <height>144</height>\n    </image>\n    <webfeeds:icon>${escapeXml(feedImageUrl)}</webfeeds:icon>\n    <webfeeds:logo>${escapeXml(feedImageUrl)}</webfeeds:logo>\n    <webfeeds:accentColor>0072ce</webfeeds:accentColor>`
+    : "";
 
   const itemXml = items
     .map((item) => {
@@ -337,16 +353,13 @@ function buildRss(items) {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0"
   xmlns:atom="http://www.w3.org/2005/Atom"
-  xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  xmlns:content="http://purl.org/rss/1.0/modules/content/"
+  xmlns:webfeeds="http://webfeeds.org/rss/1.0">
   <channel>
     <title>Be Well VT Blog | Blue Cross Blue Shield of Vermont</title>
     <link>${escapeXml(BLOG_LISTING_URL)}</link>
-    <description>${escapeXml(channelDescription)}</description>${atomLink}
-    <language>en-US</language>${
-    SITE_URL
-      ? `\n    <image>\n      <url>${escapeXml(SITE_URL)}/favicon.png</url>\n      <title>Be Well VT Blog | Blue Cross Blue Shield of Vermont</title>\n      <link>${escapeXml(BLOG_LISTING_URL)}</link>\n    </image>`
-      : ""
-  }
+    <description>${escapeXml(channelDescription)}</description>${atomLink}${channelImage}
+    <language>en-US</language>
     <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
 ${itemXml}
   </channel>
@@ -403,6 +416,7 @@ export {
   generateFeed,
   parseArticle,
   parseListingPage,
+  buildPublicAssetUrl,
   resolveUrl,
   wrapCdata,
 };

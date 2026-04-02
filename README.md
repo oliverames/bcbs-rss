@@ -23,6 +23,7 @@ The generated feed is written to `site/feed.rss`.
 - `RSS_CONCURRENCY`: number of concurrent fetches to use while crawling.
 - `RSS_TIMEOUT_MS`: request timeout in milliseconds.
 - `FEED_URL`: public URL for the published feed. When set, the feed includes an Atom self-link.
+- `SITE_URL`: public base URL for the published site. When set, the feed includes channel artwork using `site/feed-logo.jpg`.
 
 Example:
 
