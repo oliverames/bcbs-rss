@@ -4,6 +4,7 @@ import * as cheerio from "cheerio";
 
 import {
   absolutizeHtmlFragment,
+  buildPublicAssetUrl,
   buildRss,
   extractMaxPageFromPager,
   parseArticle,
@@ -62,6 +63,23 @@ test("absolutizeHtmlFragment converts relative urls", () => {
   assert.match(html, /https:\/\/www\.bluecrossvt\.org\/foo/);
   assert.match(html, /https:\/\/www\.bluecrossvt\.org\/image\.jpg/);
   assert.match(html, /https:\/\/www\.bluecrossvt\.org\/a\.jpg 1x/);
+});
+
+test("buildPublicAssetUrl appends assets under the site url", () => {
+  assert.equal(
+    buildPublicAssetUrl(
+      "https://oliverames.github.io/bcbs-rss",
+      "feed-logo.jpg",
+    ),
+    "https://oliverames.github.io/bcbs-rss/feed-logo.jpg",
+  );
+  assert.equal(
+    buildPublicAssetUrl(
+      "https://oliverames.github.io/bcbs-rss/",
+      "/feed-logo.jpg",
+    ),
+    "https://oliverames.github.io/bcbs-rss/feed-logo.jpg",
+  );
 });
 
 test("parseArticle builds full article data", () => {
