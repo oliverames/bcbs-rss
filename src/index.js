@@ -142,8 +142,6 @@ function extractMaxPageFromPager($) {
   return maxPage;
 }
 
-class HttpClientError extends Error {}
-
 async function fetchHtml(url) {
   let lastError = null;
 
@@ -158,20 +156,17 @@ async function fetchHtml(url) {
       });
 
       if (!response.ok) {
-        const ErrorType =
-          response.status >= 400 && response.status < 500
-            ? HttpClientError
-            : Error;
-        throw new ErrorType(
-          `HTTP ${response.status} while fetching ${url}`,
-        );
+        const error = new Error(`HTTP ${response.status} while fetching ${url}`);
+        error.status = response.status;
+        throw error;
       }
 
       return await response.text();
     } catch (error) {
       lastError = error;
 
-      if (error instanceof HttpClientError) {
+      const isClientError = error.status >= 400 && error.status < 500;
+      if (isClientError) {
         break;
       }
 
@@ -247,13 +242,13 @@ async function mapWithConcurrency(items, limit, mapper) {
 async function fetchAllPreviews() {
   const firstPageHtml = await fetchHtml(BLOG_LISTING_URL);
   const firstPage = parseListingPage(firstPageHtml);
-  const remainingPageIndexes = Array.from(
-    { length: Math.max(0, firstPage.maxPage) },
+  const pageIndexes = Array.from(
+    { length: firstPage.maxPage },
     (_, index) => index + 1,
   );
 
   const otherPages = await mapWithConcurrency(
-    remainingPageIndexes,
+    pageIndexes,
     CONCURRENCY,
     async (pageIndex) => {
       const html = await fetchHtml(`${BLOG_LISTING_URL}?page=${pageIndex}`);
@@ -335,21 +330,23 @@ function buildRss(items) {
     ? `\n    <atom:link href="${escapeXml(FEED_URL)}" rel="self" type="application/rss+xml" />`
     : "";
   const feedImageUrl = buildPublicAssetUrl(SITE_URL, FEED_IMAGE_FILENAME);
-  const channelImage = feedImageUrl
-    ? `
+  let channelImage = "";
+  if (feedImageUrl) {
+    const escapedImageUrl = escapeXml(feedImageUrl);
+    channelImage = `
     <image>
-      <url>${escapeXml(feedImageUrl)}</url>
+      <url>${escapedImageUrl}</url>
       <title>${escapeXml(channelTitle)}</title>
       <link>${escapeXml(BLOG_LISTING_URL)}</link>
     </image>
-    <itunes:image href="${escapeXml(feedImageUrl)}" />
+    <itunes:image href="${escapedImageUrl}" />
     <itunes:author>Blue Cross Blue Shield of Vermont</itunes:author>
     <itunes:summary>${escapeXml(channelDescription)}</itunes:summary>
-    <media:thumbnail url="${escapeXml(feedImageUrl)}" />
-    <webfeeds:icon>${escapeXml(feedImageUrl)}</webfeeds:icon>
-    <webfeeds:logo>${escapeXml(feedImageUrl)}</webfeeds:logo>
-    <webfeeds:accentColor>0072ce</webfeeds:accentColor>`
-    : "";
+    <media:thumbnail url="${escapedImageUrl}" />
+    <webfeeds:icon>${escapedImageUrl}</webfeeds:icon>
+    <webfeeds:logo>${escapedImageUrl}</webfeeds:logo>
+    <webfeeds:accentColor>0072ce</webfeeds:accentColor>`;
+  }
 
   const itemXml = items
     .map((item) => {
