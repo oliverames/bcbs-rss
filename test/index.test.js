@@ -144,4 +144,8 @@ test("buildRss emits content:encoded items", () => {
   assert.match(rss, /<rss version="2.0"/);
   assert.match(rss, /<title>Example Post<\/title>/);
   assert.match(rss, /<content:encoded><!\[CDATA\[/);
+  assert.match(
+    rss,
+    /xmlns:itunes="http:\/\/www\.itunes\.com\/dtds\/podcast-1\.0\.dtd"/,
+  );
 });

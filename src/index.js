@@ -1,5 +1,4 @@
 import path from "node:path";
-import { pathToFileURL } from "node:url";
 import { mkdir, writeFile } from "node:fs/promises";
 import * as cheerio from "cheerio";
 
@@ -7,11 +6,16 @@ const SITE_ORIGIN = "https://www.bluecrossvt.org";
 const BLOG_LISTING_PATH = "/health-community/blog/listing";
 const BLOG_LISTING_URL = new URL(BLOG_LISTING_PATH, SITE_ORIGIN).toString();
 const FEED_TOKEN = process.env.FEED_TOKEN?.trim() || "";
-const OUTPUT_PATH = process.env.RSS_OUTPUT_PATH
-  ? path.resolve(process.cwd(), process.env.RSS_OUTPUT_PATH)
-  : FEED_TOKEN
-    ? path.resolve(process.cwd(), "site", FEED_TOKEN, "feed.rss")
-    : path.resolve(process.cwd(), "site", "feed.rss");
+
+function resolveOutputPath() {
+  if (process.env.RSS_OUTPUT_PATH) {
+    return path.resolve(process.cwd(), process.env.RSS_OUTPUT_PATH);
+  }
+  const segments = ["site", FEED_TOKEN, "feed.rss"].filter(Boolean);
+  return path.resolve(process.cwd(), ...segments);
+}
+
+const OUTPUT_PATH = resolveOutputPath();
 const REQUEST_TIMEOUT_MS = Number.parseInt(
   process.env.RSS_TIMEOUT_MS ?? "15000",
   10,
@@ -24,6 +28,7 @@ const FEED_URL = process.env.FEED_URL?.trim() || "";
 const SITE_URL = process.env.SITE_URL?.trim() || "";
 const FEED_IMAGE_FILENAME = "feed-logo.jpg";
 const USER_AGENT = "bcbs-rss-feed-generator/1.0";
+const MAX_FETCH_ATTEMPTS = 3;
 
 function sleep(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -46,7 +51,7 @@ function wrapCdata(value) {
   return `<![CDATA[${String(value).replaceAll("]]>", "]]]]><![CDATA[>")}]]>`;
 }
 
-function resolveUrl(url, baseUrl = SITE_ORIGIN) {
+function resolveUrl(url, baseUrl) {
   if (!url) {
     return "";
   }
@@ -91,29 +96,20 @@ function absolutizeHtmlFragment(html, baseUrl) {
 
   $("script, style").remove();
 
-  $("[href]").each((_, element) => {
-    const current = $(element).attr("href");
-    if (current) {
-      $(element).attr("href", resolveUrl(current, baseUrl));
+  const rewriteRules = [
+    { attrs: ["href", "src", "data-src", "poster"], transform: resolveUrl },
+    { attrs: ["srcset", "data-srcset"], transform: absolutizeSrcset },
+  ];
+
+  for (const { attrs, transform } of rewriteRules) {
+    for (const attribute of attrs) {
+      $(`[${attribute}]`).each((_, element) => {
+        const current = $(element).attr(attribute);
+        if (current) {
+          $(element).attr(attribute, transform(current, baseUrl));
+        }
+      });
     }
-  });
-
-  for (const attribute of ["src", "data-src", "poster"]) {
-    $(`[${attribute}]`).each((_, element) => {
-      const current = $(element).attr(attribute);
-      if (current) {
-        $(element).attr(attribute, resolveUrl(current, baseUrl));
-      }
-    });
-  }
-
-  for (const attribute of ["srcset", "data-srcset"]) {
-    $(`[${attribute}]`).each((_, element) => {
-      const current = $(element).attr(attribute);
-      if (current) {
-        $(element).attr(attribute, absolutizeSrcset(current, baseUrl));
-      }
-    });
   }
 
   return $.root().html()?.trim() ?? "";
@@ -149,7 +145,7 @@ function extractMaxPageFromPager($) {
 async function fetchHtml(url) {
   let lastError = null;
 
-  for (let attempt = 1; attempt <= 3; attempt += 1) {
+  for (let attempt = 1; attempt <= MAX_FETCH_ATTEMPTS; attempt += 1) {
     try {
       const response = await fetch(url, {
         headers: {
@@ -167,7 +163,7 @@ async function fetchHtml(url) {
     } catch (error) {
       lastError = error;
 
-      if (attempt < 3) {
+      if (attempt < MAX_FETCH_ATTEMPTS) {
         await sleep(500 * attempt);
       }
     }
@@ -193,15 +189,15 @@ function parseListingPage(html) {
       return {
         title,
         link: resolveUrl(relativeLink, SITE_ORIGIN),
-        description:
-          cleanText(
-            $article.find(".cell.large-8 > p").first().text() ||
-              $article.find("p").first().text(),
-          ) || "",
+        description: cleanText(
+          $article.find(".cell.large-8 > p").first().text() ||
+            $article.find("p").first().text(),
+        ),
         pubDate:
           $article.find(".blog-post--date time").attr("datetime")?.trim() || "",
-        category:
-          cleanText($article.find(".blog-post--category").first().text()) || "",
+        category: cleanText(
+          $article.find(".blog-post--category").first().text(),
+        ),
       };
     })
     .get()
@@ -239,13 +235,13 @@ async function mapWithConcurrency(items, limit, mapper) {
 async function fetchAllPreviews() {
   const firstPageHtml = await fetchHtml(BLOG_LISTING_URL);
   const firstPage = parseListingPage(firstPageHtml);
-  const pageIndexes = Array.from(
-    { length: firstPage.maxPage },
+  const remainingPageIndexes = Array.from(
+    { length: Math.max(0, firstPage.maxPage) },
     (_, index) => index + 1,
   );
 
   const otherPages = await mapWithConcurrency(
-    pageIndexes,
+    remainingPageIndexes,
     CONCURRENCY,
     async (pageIndex) => {
       const html = await fetchHtml(`${BLOG_LISTING_URL}?page=${pageIndex}`);
@@ -284,11 +280,10 @@ function parseArticle(html, fallback) {
     $(".wysiwyg-block .wysiwyg").first().html() || "",
     canonical,
   );
-  const heroImageHtml = heroImage
-    ? `<p><img src="${escapeXml(heroImage)}" alt="${escapeXml(heroImageAlt)}"></p>`
-    : "";
   const contentHtml =
-    heroImageHtml +
+    (heroImage
+      ? `<p><img src="${escapeXml(heroImage)}" alt="${escapeXml(heroImageAlt)}"></p>`
+      : "") +
     (bodyHtml || `<p>${escapeXml(description || fallback.description)}</p>`);
 
   return {
@@ -321,16 +316,27 @@ function compareByDateDescending(left, right) {
 }
 
 function buildRss(items) {
+  const channelTitle = "Be Well VT Blog | Blue Cross Blue Shield of Vermont";
   const channelDescription =
     "Full-text RSS feed for the Be Well VT Blog from Blue Cross Blue Shield of Vermont.";
   const atomLink = FEED_URL
-    ? `\n    <atom:link href="${escapeXml(
-        FEED_URL,
-      )}" rel="self" type="application/rss+xml" />`
+    ? `\n    <atom:link href="${escapeXml(FEED_URL)}" rel="self" type="application/rss+xml" />`
     : "";
   const feedImageUrl = buildPublicAssetUrl(SITE_URL, FEED_IMAGE_FILENAME);
   const channelImage = feedImageUrl
-    ? `\n    <image>\n      <url>${escapeXml(feedImageUrl)}</url>\n      <title>Be Well VT Blog | Blue Cross Blue Shield of Vermont</title>\n      <link>${escapeXml(BLOG_LISTING_URL)}</link>\n      <width>144</width>\n      <height>144</height>\n    </image>\n    <webfeeds:icon>${escapeXml(feedImageUrl)}</webfeeds:icon>\n    <webfeeds:logo>${escapeXml(feedImageUrl)}</webfeeds:logo>\n    <webfeeds:accentColor>0072ce</webfeeds:accentColor>`
+    ? `
+    <image>
+      <url>${escapeXml(feedImageUrl)}</url>
+      <title>${escapeXml(channelTitle)}</title>
+      <link>${escapeXml(BLOG_LISTING_URL)}</link>
+    </image>
+    <itunes:image href="${escapeXml(feedImageUrl)}" />
+    <itunes:author>Blue Cross Blue Shield of Vermont</itunes:author>
+    <itunes:summary>${escapeXml(channelDescription)}</itunes:summary>
+    <media:thumbnail url="${escapeXml(feedImageUrl)}" />
+    <webfeeds:icon>${escapeXml(feedImageUrl)}</webfeeds:icon>
+    <webfeeds:logo>${escapeXml(feedImageUrl)}</webfeeds:logo>
+    <webfeeds:accentColor>0072ce</webfeeds:accentColor>`
     : "";
 
   const itemXml = items
@@ -354,9 +360,11 @@ function buildRss(items) {
 <rss version="2.0"
   xmlns:atom="http://www.w3.org/2005/Atom"
   xmlns:content="http://purl.org/rss/1.0/modules/content/"
+  xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"
+  xmlns:media="http://search.yahoo.com/mrss/"
   xmlns:webfeeds="http://webfeeds.org/rss/1.0">
   <channel>
-    <title>Be Well VT Blog | Blue Cross Blue Shield of Vermont</title>
+    <title>${escapeXml(channelTitle)}</title>
     <link>${escapeXml(BLOG_LISTING_URL)}</link>
     <description>${escapeXml(channelDescription)}</description>${atomLink}${channelImage}
     <language>en-US</language>
@@ -397,11 +405,7 @@ async function main() {
   );
 }
 
-const isMain =
-  process.argv[1] &&
-  import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
-
-if (isMain) {
+if (process.argv[1] === import.meta.filename) {
   main().catch((error) => {
     console.error(error instanceof Error ? error.message : error);
     process.exitCode = 1;
@@ -410,13 +414,9 @@ if (isMain) {
 
 export {
   absolutizeHtmlFragment,
+  buildPublicAssetUrl,
   buildRss,
-  cleanText,
   extractMaxPageFromPager,
-  generateFeed,
   parseArticle,
   parseListingPage,
-  buildPublicAssetUrl,
-  resolveUrl,
-  wrapCdata,
 };
