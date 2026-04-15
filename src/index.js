@@ -142,6 +142,8 @@ function extractMaxPageFromPager($) {
   return maxPage;
 }
 
+class HttpClientError extends Error {}
+
 async function fetchHtml(url) {
   let lastError = null;
 
@@ -156,12 +158,22 @@ async function fetchHtml(url) {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status} while fetching ${url}`);
+        const ErrorType =
+          response.status >= 400 && response.status < 500
+            ? HttpClientError
+            : Error;
+        throw new ErrorType(
+          `HTTP ${response.status} while fetching ${url}`,
+        );
       }
 
       return await response.text();
     } catch (error) {
       lastError = error;
+
+      if (error instanceof HttpClientError) {
+        break;
+      }
 
       if (attempt < MAX_FETCH_ATTEMPTS) {
         await sleep(500 * attempt);
