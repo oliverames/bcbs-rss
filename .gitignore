@@ -1,2 +1,4 @@
 node_modules/
 FEED_URL.md
+site/**/feed.rss
+site/feed.rss
