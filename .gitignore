@@ -2,3 +2,10 @@ node_modules/
 FEED_URL.md
 site/**/feed.rss
 site/feed.rss
+
+# Secrets / local environment — never commit real credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
