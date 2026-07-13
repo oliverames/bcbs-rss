@@ -10,12 +10,6 @@
   <code>weekly refresh</code>
 </p>
 
-<p align="center">
-  <a href="https://github.com/oliverames">
-    <img src="https://img.shields.io/badge/Repository-source-0969da?style=flat-square&logo=github&logoColor=white" alt="Repository">
-  </a>
-</p>
-
 ---
 
 The Be Well VT blog has no RSS feed. This project crawls every page of the archive, fetches each article's full content (title, date, categories, hero image, and body HTML), and produces a standards-compliant RSS 2.0 feed published automatically to GitHub Pages — making the blog subscribable from any feed reader or automatable with RSS-aware tooling.
@@ -50,20 +44,3 @@ FEED_URL="https://oliverames.github.io/bcbs-rss/feed.rss" npm run generate
 ## Automation
 
 A GitHub Actions workflow at `.github/workflows/refresh-feed.yml` publishes `site/` to GitHub Pages on pushes to `main`, manual runs, and a weekly refresh schedule. Once the repo is live and Pages is enabled, the feed stays current without manual intervention.
-
----
-
-<p align="center">
-  <a href="https://github.com/oliverames">
-    <img src="https://img.shields.io/badge/Repository-source-0969da?style=for-the-badge&logo=github&logoColor=white" alt="Repository">
-  </a>
-</p>
-
-<p align="center">
-  <sub>
-    Maintained on GitHub
-    &bull; <a href="https://github.com/oliverames">GitHub</a>
-    &bull; <a href="https://github.com/oliverames">LinkedIn</a>
-    &bull; <a href="https://github.com/oliverames">Bluesky</a>
-  </sub>
-</p>
