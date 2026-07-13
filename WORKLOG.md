@@ -6,6 +6,6 @@
 
 **Verification**: All six tests pass, `npm audit` reports zero vulnerabilities, Gitleaks reports no findings across the rewritten branches, and no branch contains the former email, profile, machine-path, or AI-attribution patterns. The main and Dependabot branches were force-pushed with leases. The redundant Dependabot pull request was closed because its update is already on `main`.
 
-**Remaining privacy step**: GitHub still serves the previous commits when someone requests an old object by its exact hash, even though no branch or tag points to that history. GitHub's documented process requires Support to remove cached views and run server-side garbage collection. The current repository history and live Pages site are clean, but strict removal from GitHub storage is not complete until Support confirms that purge.
+**Remaining privacy step**: GitHub still serves the previous commits when someone requests an old object by its exact hash, even though no branch or tag points to that history. GitHub Support is the only documented route for asking GitHub to remove cached views and run server-side garbage collection, but GitHub says it will not remove non-sensitive data. The removed material is personal contact and workstation metadata, not a live credential, so Support may decline the request. If it does, the clean history needs to move to a new public repository while the old repository becomes private.
 
 ---
